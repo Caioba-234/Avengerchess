@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Xadrez Vingadores: Ultimato</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#101216;--panel:#1a1d24;--bd:#2f3440;--tx:#e6e8ec;--mut:#98a1ad;--gold:#ffcc00;--blue:#4da6ff;--red:#ff5252;--green:#5ec269;
+--lt:#e8d3ac;--dk:#a97c55;--log:#0d0f13;--w:#fff;--b:#15151a}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#eef0f3;--panel:#fff;--bd:#cfd4dc;--tx:#1b1f27;--mut:#5b6573;--log:#f4f5f7;--gold:#a87700;--blue:#1565c0;--red:#c62828}}
+:root[data-theme="light"]{--bg:#eef0f3;--panel:#fff;--bd:#cfd4dc;--tx:#1b1f27;--mut:#5b6573;--log:#f4f5f7;--gold:#a87700;--blue:#1565c0;--red:#c62828}
+html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',Tahoma,Verdana,sans-serif;padding:10px;display:flex;flex-direction:column;align-items:center;min-height:100vh}
+h1{color:var(--gold);letter-spacing:2px;font-size:1.4rem;margin:6px 0;text-align:center}
+#turno{font-weight:700;margin-bottom:10px;padding:6px 14px;border-radius:20px;border:2px solid var(--bd);background:var(--panel);text-align:center}
+#turno.white{border-color:var(--blue);color:var(--blue)}#turno.black{border-color:#a066ff;color:#a066ff}
+.wrap{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;width:100%}
+#board{--sq:min(11vw,64px);display:grid;grid-template-columns:repeat(8,var(--sq));grid-template-rows:repeat(8,var(--sq));border:4px solid var(--bd);border-radius:4px;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.sq{width:var(--sq);height:var(--sq);position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none}
+.light{background:var(--lt)}.dark{background:var(--dk)}
+.last{box-shadow:inset 0 0 0 100px rgba(255,214,0,.28)}
+.selected{box-shadow:inset 0 0 0 100px rgba(123,97,255,.55)}
+.mv::before{content:"";position:absolute;width:26%;height:26%;border-radius:50%;background:rgba(40,150,60,.75)}
+.atk{box-shadow:inset 0 0 0 4px var(--red),inset 0 0 0 100px rgba(255,82,82,.25)}
+.abt{box-shadow:inset 0 0 0 4px #ff9800,inset 0 0 0 100px rgba(255,152,0,.3)}
+.pc{position:relative;font-size:calc(var(--sq)*.42);line-height:1;margin-top:-8%;width:calc(var(--sq)*.68);height:calc(var(--sq)*.68);display:flex;align-items:center;justify-content:center;border-radius:50%;border:3px solid;box-sizing:border-box;font-family:'Segoe UI Emoji','Apple Color Emoji','Noto Color Emoji',sans-serif}
+.pc::after{content:attr(data-k);position:absolute;right:-4px;bottom:-4px;font-size:calc(var(--sq)*.2);line-height:1;background:#000;color:#fff;border-radius:50%;padding:1px;font-family:sans-serif}
+.pc.white{background:#1e4f9c;border-color:#8cc4ff;box-shadow:0 0 6px #1e6fd9}
+.pc.black{background:#4a2380;border-color:#c79bff;box-shadow:0 0 6px #a066ff}
+.hp{position:absolute;left:10%;right:10%;bottom:4%;height:calc(var(--sq)*.13);background:rgba(0,0,0,.45);border-radius:3px;overflow:hidden}
+.hp i{display:block;height:100%;background:var(--green)}
+.hp.mid i{background:#e5b800}.hp.low i{background:var(--red)}.hp.sh i{background:#4da6ff}
+.hpn{position:absolute;right:4%;top:2%;font-size:calc(var(--sq)*.2);font-weight:700;color:#fff;background:rgba(0,0,0,.6);border-radius:3px;padding:0 3px}
+.ready::after{content:"";position:absolute;left:5%;top:5%;width:calc(var(--sq)*.14);height:calc(var(--sq)*.14);border-radius:50%;background:#ffcc00;box-shadow:0 0 6px #ffcc00}
+.charged .pc{filter:drop-shadow(0 0 6px #ff9800)}
+.hitfx{animation:shake .35s}.healfx{animation:pulse .5s}
+.dica{outline:3px dashed #ffcc00;outline-offset:-3px}
+dialog{background:var(--panel);color:var(--tx);border:2px solid var(--bd);border-radius:10px;max-width:320px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog input{width:100%;box-sizing:border-box;padding:8px;margin:8px 0;border-radius:6px;border:1px solid var(--bd);background:var(--log);color:var(--tx);font:inherit}
+#conta{justify-content:space-between;background:var(--log);border:1px solid var(--bd);border-radius:6px;padding:6px 8px}
+#rkl{margin:6px 0 0;padding-left:20px;color:var(--tx)}
+#inicio{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+#inicio[hidden]{display:none}
+#inicio .box{background:var(--panel);border:2px solid var(--bd);border-radius:12px;padding:24px;max-width:340px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px}
+#inicio h2{margin:0;color:var(--gold);font-size:1.3rem}
+#inicio p{margin:0;color:var(--mut)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes pulse{50%{background-color:rgba(94,194,105,.7)}}
+.fl{position:absolute;top:10%;font-weight:800;font-size:calc(var(--sq)*.34);pointer-events:none;animation:up 1s forwards;text-shadow:0 0 3px #000}
+.fl.hit{color:#ff5252}.fl.heal{color:#7dff8a}
+@keyframes up{to{transform:translateY(-30px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.hitfx,.healfx,.fl{animation:none}}
+#side{width:min(330px,100%);background:var(--panel);border:2px solid var(--bd);border-radius:8px;padding:14px;box-sizing:border-box}
+#side h2{margin:0 0 8px;font-size:1.05rem;color:var(--red);border-bottom:1px solid var(--bd);padding-bottom:6px}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+select,button{font:inherit}
+select{flex:1;padding:6px;border-radius:6px;background:var(--log);color:var(--tx);border:1px solid var(--bd)}
+.btn{background:#ff9800;color:#111;border:0;padding:9px 12px;font-weight:700;border-radius:6px;cursor:pointer;width:100%}
+.btn:hover:not(:disabled){background:#e68900}.btn:disabled{background:var(--bd);color:var(--mut);cursor:not-allowed}
+.btn2{background:var(--bd);color:var(--tx);border:0;padding:7px 12px;border-radius:6px;cursor:pointer}
+button:focus-visible,select:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+#info{min-height:92px;font-size:.92rem;line-height:1.45}
+#info small{color:var(--mut);display:block;margin-top:4px}
+#cnt{display:flex;justify-content:space-between;font-size:.85rem;margin:10px 0;color:var(--mut)}
+#log{height:130px;background:var(--log);border:1px solid var(--bd);border-radius:6px;padding:8px;font-size:12px;overflow-y:auto;color:var(--mut)}
+#log .white{color:var(--blue)}#log .black{color:#a066ff}
+details{margin-top:10px;font-size:.82rem;color:var(--mut)}summary{cursor:pointer;color:var(--gold)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<h1>Xadrez Vingadores: Ultimato</h1>
+<div id="inicio" hidden><div class="box"><h2>🛡️ Xadrez Vingadores ⚔️</h2><p id="iTxt"></p><button class="btn" id="iEntrar">Entrar</button><button class="btn" id="iCriar">Criar conta</button><button class="btn2" id="iVis">Jogar como visitante</button></div></div>
+<div id="turno" class="white"></div>
+<div class="wrap">
+  <div id="board" role="grid" aria-label="Tabuleiro"></div>
+  <div id="side">
+    <h2>Painel de combate</h2>
+    <div class="row" id="conta"><span id="contaTxt">Visitante</span><button class="btn2" id="contaBtn" hidden>Criar conta</button><button class="btn2" id="contaDel" hidden>Excluir</button></div>
+    <dialog id="dlg"><h3 id="dTit" style="margin:0 0 4px">Entrar</h3><p style="font-size:.85rem;color:var(--mut);margin:0"><span id="dTxt"></span></p><input id="email" type="email" autocomplete="email" placeholder="E-mail" aria-label="E-mail"><input id="nick" maxlength="16" placeholder="Apelido (aparece no ranking)" aria-label="Apelido"><input id="pass" type="password" maxlength="72" placeholder="Senha (mín. 6 caracteres)" aria-label="Senha"><div id="dErr" style="color:var(--red);font-size:.82rem;min-height:1.1em"></div><div class="row" style="margin:0"><button class="btn" id="dOk">Entrar</button><button class="btn2" id="dNo">Cancelar</button></div></dialog>
+    <div class="row">
+      <select id="modo" aria-label="Modo de jogo"><option value="ia">Jogar contra a IA</option><option value="2p">Dois jogadores</option></select>
+      <button class="btn2" id="novo">Reiniciar</button>
+    </div>
+    <div class="row"><select id="time" aria-label="Seu time"><option value="white">Jogar de Vingadores (azul)</option><option value="black">Jogar de Thanos (roxo)</option></select></div>
+    <div class="row"><select id="nivel" aria-label="Dificuldade da IA"><option value="facil">IA fácil</option><option value="normal" selected>IA normal</option><option value="dificil">IA difícil</option></select><button class="btn2" id="desf">↩ Desfazer</button></div>
+    <div class="row"><button class="btn2" id="dica">💡 Dica</button><button class="btn2" id="som">🔊 Som</button></div>
+    <div id="info"></div>
+    <button class="btn" id="hab" disabled>Habilidade</button>
+    <button class="btn" id="hab2" style="margin-top:6px;display:none">Joia da Realidade</button>
+    <div id="cnt"></div>
+    <div id="log"></div>
+    <details id="rk" hidden><summary>🏆 Ranking</summary><ol id="rkl"></ol></details>
+    <details><summary>Regras</summary>
+      <p>Mova como no xadrez. Ataques causam 1 de dano e a peça só avança se destruir o alvo. Peões que chegam ao fim viram damas. Habilidades gastam o turno e têm recarga de 3 turnos (ponto amarelo = pronta). Vence quem exterminar todas as peças inimigas.</p>
+    </details>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const GL={rei:'♚',dama:'♛',torre:'♜',bispo:'♝',cavalo:'♞',peao:'♟\uFE0E'};
+const VAL={peao:1,cavalo:3,bispo:3,torre:5,dama:9,rei:20};
+const D8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const CD=3;
+const AB={
+ rei_white:['Em Frente, Vingadores!','Cura 1 vida de você e dos aliados adjacentes.'],
+ rei_black2:['Joia da Realidade','Cura 1 vida de Thanos e dos aliados adjacentes, podendo passar do máximo em +1.'],
+ rei_black:['Estalar','Uma vez por partida: 1 de dano em até 3 peças inimigas aleatórias.'],
+ dama:['Disparo de longo alcance','Atinge o primeiro inimigo em linha (até 4 casas) com 2 de dano, sem se mover.'],
+ bispo:['Onda de choque','1 de dano em todos os inimigos adjacentes.'],
+ cavalo:['Investida crítica','O próximo ataque causa 2 de dano.'],
+ torre:['Escudo','Ganha +2 vidas, mesmo acima do máximo.']};
+const T=['torre','cavalo','bispo','dama','rei','bispo','cavalo','torre'];
+const NB=['Leviatã','Cull Obsidian','Corvus Glaive','Próxima Meia-Noite','Thanos','Fauce de Ébano','Outrider Alfa','Navio Chitauri'];
+const NW=['Dr. Estranho','Homem de Ferro','Thor','Capitã Marvel','Capitão América','Hulk','Máquina de Combate','Homem-Formiga'];
+const ICON={'Dr. Estranho':'🔮','Homem de Ferro':'🤖','Thor':'⚡','Capitã Marvel':'⭐','Capitão América':'🛡️','Hulk':'💚','Máquina de Combate':'🪖','Homem-Formiga':'🐜','Wakandiano':'🐆','Thanos':'🧤','Leviatã':'🐙','Cull Obsidian':'🔨','Corvus Glaive':'🗡️','Próxima Meia-Noite':'🔱','Fauce de Ébano':'🌑','Outrider Alfa':'🐺','Navio Chitauri':'🚀','Outrider':'👾'};
+let board,turn,sel,acts,tgt,over,fx,last,vsAI=true,busy=false;
+let level='normal',hist=[],hintSq=null,snd=true,ac=null,human='white';
+const ai=()=>human==='white'?'black':'white';
+const flip=()=>vsAI&&human==='black';
+function beep(f,d,t='square',v=.06){if(!snd)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+
+const inb=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+const mk=(t,c,l,sub)=>({t,c,l,max:l,sub,ic:ICON[sub]||'',cd:0,charge:false,used:false});
+const abKey=p=>p.t==='rei'?'rei_'+p.c:p.t;
+const nbrs=(r,c)=>D8.map(([a,b])=>[r+a,c+b]).filter(([a,b])=>inb(a,b));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+function setup(){
+  const b=Array.from({length:8},()=>Array(8).fill(null));
+  for(let c=0;c<8;c++){
+    b[0][c]=mk(T[c],'black',T[c]==='rei'?8:5,NB[c]);
+    b[1][c]=mk('peao','black',1,'Outrider');
+    b[6][c]=mk('peao','white',1,'Wakandiano');
+    b[7][c]=mk(T[c],'white',5,NW[c]);
+  }
+  return b;
+}
+function log(m,cls){const d=document.createElement('div');d.textContent='› '+m;if(cls)d.className=cls;$('log').appendChild(d);$('log').scrollTop=1e9}
+
+function moves(r,c){
+  const p=board[r][c],o=[];if(!p)return o;
+  const add=(nr,nc)=>{if(!inb(nr,nc))return;const t=board[nr][nc];if(!t)o.push({r:nr,c:nc,type:'move'});else if(t.c!==p.c)o.push({r:nr,c:nc,type:'attack'})};
+  if(p.t==='peao'){
+    const d=p.c==='white'?-1:1,s=p.c==='white'?6:1;
+    if(inb(r+d,c)&&!board[r+d][c]){o.push({r:r+d,c,type:'move'});if(r===s&&!board[r+2*d][c])o.push({r:r+2*d,c,type:'move'})}
+    for(const dc of[-1,1]){const nr=r+d,nc=c+dc;if(inb(nr,nc)&&board[nr][nc]&&board[nr][nc].c!==p.c)o.push({r:nr,c:nc,type:'attack'})}
+  }else if(p.t==='cavalo'){
+    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(k=>add(r+k[0],c+k[1]));
+  }else if(p.t==='rei'){
+    D8.forEach(k=>add(r+k[0],c+k[1]));
+  }else{
+    const ds=[];if(p.t!=='bispo')ds.push(...D8.slice(0,4));if(p.t!=='torre')ds.push(...D8.slice(4));
+    for(const [a,b] of ds){let nr=r+a,nc=c+b;while(inb(nr,nc)){const t=board[nr][nc];if(!t)o.push({r:nr,c:nc,type:'move'});else{if(t.c!==p.c)o.push({r:nr,c:nc,type:'attack'});break}nr+=a;nc+=b}}
+  }
+  return o;
+}
+function rTargets(r,c){
+  const p=board[r][c],o=[];
+  for(const [a,b] of D8)for(let k=1;k<=4;k++){const nr=r+a*k,nc=c+b*k;if(!inb(nr,nc))break;const t=board[nr][nc];if(t){if(t.c!==p.c)o.push({r:nr,c:nc,type:'ability'});break}}
+  return o;
+}
+function canAb(r,c,v){
+  const p=board[r][c];if(!p||p.cd>0||p.t==='peao')return false;
+  const A=nbrs(r,c).map(([a,b])=>board[a][b]).filter(Boolean);
+  switch(p.t){
+    case'rei':if(p.c==='black')return v===2?(p.l<p.max+1||A.some(x=>x.c===p.c&&x.l<x.max+1)):!p.used;return p.l<p.max||A.some(x=>x.c===p.c&&x.l<x.max);
+    case'dama':return rTargets(r,c).length>0;
+    case'bispo':return A.some(x=>x.c!==p.c);
+    case'cavalo':return !p.charge;
+    case'torre':return p.l<p.max+2;
+  }
+}
+function attacked(r,c,by){
+  for(let a=0;a<8;a++)for(let b=0;b<8;b++){const p=board[a][b];if(p&&p.c===by&&moves(a,b).some(m=>m.type==='attack'&&m.r===r&&m.c===c))return true}
+  return false;
+}
+
+function dmg(r,c,n){
+  const t=board[r][c];t.l-=n;fx.push({r,c,txt:'-'+n,cls:'hit'});
+  if(t.l<=0){log('💥 '+t.sub+' foi destruído!');beep(80,.35,'sawtooth',.1);board[r][c]=null;return true}
+  log(t.sub+' sofreu '+n+' de dano ('+t.l+'/'+t.max+')');return false;
+}
+function move(sr,sc,tr,tc){
+  const p=board[sr][sc];board[tr][tc]=p;board[sr][sc]=null;
+  if(p.t==='peao'&&((p.c==='white'&&tr===0)||(p.c==='black'&&tr===7))){
+    p.t='dama';p.l=p.max=3;p.ic='👑';p.sub+=' (promovido)';log('⭐ '+p.sub+' virou Dama!');
+  }
+}
+function doAb(r,c,t,v){
+  const p=board[r][c],A=nbrs(r,c);
+  log('✨ '+p.sub+' usou '+AB[v===2?'rei_black2':abKey(p)][0]+'!',p.c);
+  if(v===2||(p.t==='rei'&&p.c==='white')){
+    [[r,c],...A].forEach(([a,b])=>{const x=board[a][b];if(x&&x.c===p.c&&x.l<x.max+(v===2?1:0)){x.l++;fx.push({r:a,c:b,txt:'+1',cls:'heal'})}});
+  }else if(p.t==='rei'){
+    p.used=true;const pool=[];
+    board.forEach((row,a)=>row.forEach((x,b)=>{if(x&&x.c!==p.c)pool.push([a,b])}));
+    shuffle(pool).slice(0,3).forEach(([a,b])=>dmg(a,b,1));
+  }else if(p.t==='dama')dmg(t.r,t.c,2);
+  else if(p.t==='bispo')A.forEach(([a,b])=>{const x=board[a][b];if(x&&x.c!==p.c)dmg(a,b,1)});
+  else if(p.t==='cavalo')p.charge=true;
+  else if(p.t==='torre'){p.l=Math.min(p.l+2,p.max+2);fx.push({r,c,txt:'+2',cls:'heal'})}
+  p.cd=CD;
+}
+function perform(x){
+  if(!vsAI||turn===human)hist=[...hist,JSON.stringify({board,turn,last})].slice(-40);
+  hintSq=null;
+  beep(x.k==='m'?330:x.k==='a'?170:700,x.k==='m'?.07:.16,x.k==='a'?'sawtooth':x.k==='ab'?'sine':'square');
+  last=[[x.sr,x.sc]];
+  if(x.k==='m'){move(x.sr,x.sc,x.tr,x.tc);last.push([x.tr,x.tc])}
+  else if(x.k==='a'){
+    const a=board[x.sr][x.sc],n=a.charge?2:1;a.charge=false;
+    log('⚔️ '+a.sub+' atacou '+board[x.tr][x.tc].sub+'!',a.c);
+    if(dmg(x.tr,x.tc,n))move(x.sr,x.sc,x.tr,x.tc);
+    last.push([x.tr,x.tc]);
+  }else doAb(x.sr,x.sc,x.tgt,x.v);
+  endTurn();
+}
+function endTurn(){
+  sel=null;acts=[];tgt=false;render();
+  if(checkEnd())return;
+  turn=turn==='white'?'black':'white';
+  board.flat().forEach(p=>{if(p&&p.c===turn&&p.cd>0)p.cd--});
+  ui();
+  if(vsAI&&turn===ai()){busy=true;setTimeout(aiTurn,650)}
+}
+function checkEnd(){
+  const n={white:0,black:0};board.flat().forEach(p=>{if(p)n[p.c]++});
+  if(n.white&&n.black)return false;
+  over=true;[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.25,'triangle'),i*150));const t=$('turno');t.className=n.white?'white':'black';
+  t.textContent=n.white?'🏆 Os Vingadores venceram!':'💀 O exército de Thanos venceu!';
+  log(n.white?'Todo o exército de Thanos foi destruído!':'Todos os Vingadores foram exterminados.');
+  if(vsAI&&acct&&sb){if(undoUsed)log('Partidas com Desfazer não entram no ranking.');else record(n.white?'white':'black')}
+  ui();return true;
+}
+
+function click(r,c){
+  if(over||busy)return;
+  const p=board[r][c];
+  if(sel){
+    const a=acts.find(x=>x.r===r&&x.c===c);
+    if(a){
+      if(a.type==='ability')perform({k:'ab',sr:sel.r,sc:sel.c,tgt:a});
+      else perform({k:a.type==='attack'?'a':'m',sr:sel.r,sc:sel.c,tr:r,tc:c});
+      return;
+    }
+  }
+  if(p&&p.c===turn){sel={r,c};tgt=false;acts=moves(r,c)}
+  else{sel=null;acts=[];tgt=false}
+  ui();render();
+}
+function useAb(v){
+  if(!sel||over||busy)return;
+  const p=board[sel.r][sel.c];if(!canAb(sel.r,sel.c,v))return;
+  if(p.t==='dama'){tgt=!tgt;acts=tgt?rTargets(sel.r,sel.c):moves(sel.r,sel.c);ui();render();return}
+  perform({k:'ab',sr:sel.r,sc:sel.c,v});
+}
+
+function ui(){
+  if(!over){const t=$('turno');t.className=turn;t.textContent='Turno: '+(turn==='white'?'Vingadores (brancas)':'Exército de Thanos (pretas)')+(busy?' pensando…':'')}
+  const n={white:0,black:0};board.flat().forEach(p=>{if(p)n[p.c]++});
+  $('cnt').innerHTML='<span>Vingadores: '+n.white+'</span><span>Thanos: '+n.black+'</span>';
+  const h=$('hab'),i=$('info'),h2=$('hab2');h2.style.display='none';
+  if(!sel){i.innerHTML='Clique em uma peça para ver detalhes e movimentos.';h.disabled=true;h.textContent='Habilidade';return}
+  const p=board[sel.r][sel.c],k=p.t==='peao'?null:AB[abKey(p)];
+  i.innerHTML='<strong>'+p.sub+'</strong> ('+(p.c==='white'?'Vingador':'Thanos')+')<br>Classe: '+p.t+' · ❤️ '+p.l+'/'+p.max+(p.charge?' · ⚡ carregado':'')+
+    (k?'<small>'+k[1]+(p.cd>0?' Recarga: '+p.cd+' turno(s).':'')+'</small>'+(p.t==='rei'&&p.c==='black'?'<small>💎 '+AB.rei_black2[0]+': '+AB.rei_black2[1]+'</small>':''):'<small>Peões não têm habilidade. Chegue ao fim do tabuleiro para virar dama.</small>');
+  h.disabled=!k||!canAb(sel.r,sel.c)||over||busy;
+  h.textContent=k?(tgt?'Cancelar (escolha um alvo)':k[0]):'Sem habilidade';
+  if(p.t==='rei'&&p.c==='black'){h2.style.display='block';h2.disabled=!canAb(sel.r,sel.c,2)||over||busy;h2.textContent='💎 '+AB.rei_black2[0]}
+}
+function render(){
+  const B=$('board');B.innerHTML='';
+  const lastSet=new Set((last||[]).map(x=>x.join()));
+  for(let i=0;i<64;i++){
+    const r=flip()?7-(i>>3):i>>3,c=flip()?7-(i&7):i&7;
+    const s=document.createElement('div');s.className='sq '+((r+c)%2?'dark':'light');
+    const p=board[r][c],a=acts.find(x=>x.r===r&&x.c===c);
+    if(lastSet.has(r+','+c))s.classList.add('last');
+    if(sel&&sel.r===r&&sel.c===c)s.classList.add('selected');
+    if(a)s.classList.add(a.type==='move'?'mv':a.type==='attack'?'atk':'abt');
+    if(hintSq&&hintSq.r===r&&hintSq.c===c)s.classList.add('dica');
+    if(p){
+      s.title=p.sub;
+      const sp=document.createElement('span');sp.className='pc '+p.c;sp.textContent=p.ic||GL[p.t];sp.dataset.k=GL[p.t];s.appendChild(sp);
+      const pct=Math.min(100,p.l/p.max*100),hp=document.createElement('div');
+      hp.className='hp'+(p.l>p.max?' sh':pct<=34?' low':pct<=67?' mid':'');hp.innerHTML='<i style="width:'+pct+'%"></i>';s.appendChild(hp);
+      const n=document.createElement('span');n.className='hpn';n.textContent=p.l;s.appendChild(n);
+      if(p.charge)s.classList.add('charged');
+      if(p.c===turn&&(canAb(r,c)||canAb(r,c,2)))s.classList.add('ready');
+    }
+    fx.filter(f=>f.r===r&&f.c===c).forEach(f=>{
+      s.classList.add(f.cls==='hit'?'hitfx':'healfx');
+      const d=document.createElement('div');d.className='fl '+f.cls;d.textContent=f.txt;s.appendChild(d);
+    });
+    s.addEventListener('click',()=>click(r,c));
+    B.appendChild(s);
+  }
+  fx=[];
+}
+
+/* IA do Thanos */
+function plan(me){
+  const foe=me==='black'?'white':'black';
+  const cand=[];
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=board[r][c];if(!p||p.c!==me)continue;
+    const threatened=attacked(r,c,foe);
+    for(const m of moves(r,c)){
+      let s=Math.random()*.4;
+      if(m.type==='attack'){
+        const t=board[m.r][m.c],kill=(p.charge?2:1)>=t.l;
+        s+=VAL[t.t]*(kill?3:.9);
+        if(kill)s-=danger(r,c,m.r,m.c,p,foe)*.8;
+      }else{
+        if(p.t==='peao')s+=(me==='black'?r:7-r)*.15;
+        s-=danger(r,c,m.r,m.c,p,foe);
+        if(threatened)s+=VAL[p.t]*.6;
+      }
+      cand.push({s,a:{k:m.type==='attack'?'a':'m',sr:r,sc:c,tr:m.r,tc:m.c}});
+    }
+    if(p.t==='rei'&&me==='black'&&canAb(r,c,2)){
+      let s=0;[[r,c],...nbrs(r,c)].forEach(([a,b])=>{const x=board[a][b];if(x&&x.c===me&&x.l<x.max+1)s+=1+Math.min(VAL[x.t],5)*.3});
+      cand.push({s:s+Math.random()*.4,a:{k:'ab',sr:r,sc:c,v:2}});
+    }
+    if(canAb(r,c)){
+      if(p.t==='dama'){
+        for(const t of rTargets(r,c)){const x=board[t.r][t.c];cand.push({s:VAL[x.t]*(x.l<=2?3:1.4)+Math.random()*.4,a:{k:'ab',sr:r,sc:c,tgt:t}})}
+      }else{
+        let s=0;
+        if(p.t==='bispo')nbrs(r,c).forEach(([a,b])=>{const x=board[a][b];if(x&&x.c!==p.c)s+=VAL[x.t]*(x.l<=1?3:1)});
+        else if(p.t==='rei')s=4;
+        else if(p.t==='cavalo')s=.8;
+        else if(p.t==='torre')s=threatened?3:.3;
+        cand.push({s:s+Math.random()*.4,a:{k:'ab',sr:r,sc:c}});
+      }
+    }
+  }
+  return cand.sort((x,y)=>y.s-x.s);
+}
+function aiTurn(){
+  busy=false;if(over||turn!==ai())return;
+  const c=plan(ai());
+  if(!c.length){log('A IA não tem ações e passa a vez.');turn=human;ui();render();return}
+  const top=level==='facil'?Math.min(c.length,6):Math.min(c.length,2);
+  const pick=level==='dificil'||(level==='normal'&&Math.random()>.25)?c[0]:c[Math.floor(Math.random()*top)];
+  perform(pick.a);
+}
+function dica(){
+  if(over||busy||(vsAI&&turn!==human))return;
+  const c=plan(turn);if(!c.length)return;
+  const a=c[0].a,p=board[a.sr][a.sc];
+  sel={r:a.sr,c:a.sc};tgt=false;acts=moves(a.sr,a.sc);
+  if(a.k==='ab'){hintSq=a.tgt?{r:a.tgt.r,c:a.tgt.c}:null;log('💡 Dica: use a habilidade de '+p.sub+'.')}
+  else{hintSq={r:a.tr,c:a.tc};log('💡 Dica: '+p.sub+' pode '+(a.k==='a'?'atacar':'se mover')+' para a casa tracejada.')}
+  ui();render();
+}
+function undo(){
+  if(busy||!hist.length)return;
+  const s=JSON.parse(hist[hist.length-1]);hist=hist.slice(0,-1);undoUsed=true;
+  board=s.board;turn=s.turn;last=s.last;over=false;sel=null;acts=[];tgt=false;hintSq=null;
+  log('↩️ Jogada desfeita.');ui();render();
+}
+function danger(sr,sc,tr,tc,p,foe){
+  const old=board[tr][tc];board[tr][tc]=p;board[sr][sc]=null;
+  const d=attacked(tr,tc,foe)?VAL[p.t]:0;
+  board[sr][sc]=p;board[tr][tc]=old;return d;
+}
+
+function init(){
+  board=setup();hist=[];undoUsed=false;hintSq=null;turn='white';sel=null;acts=[];tgt=false;over=false;fx=[];last=null;busy=false;
+  $('log').innerHTML='';log('Partida iniciada. O extermínio total começou!');
+  if(vsAI&&human==='black'){busy=true;setTimeout(aiTurn,650)}
+  ui();render();
+}
+/* ===== Contas (Supabase) ===== */
+const SUPABASE_URL='COLE_AQUI_A_URL_DO_PROJETO';
+const SUPABASE_ANON_KEY='COLE_AQUI_A_CHAVE_ANON';
+let sb=null,acct=null,undoUsed=false,delArm=false,dMode='login';
+const configured=()=>!SUPABASE_URL.startsWith('COLE')&&!SUPABASE_ANON_KEY.startsWith('COLE');
+const tr=m=>/Invalid login/i.test(m)?'E-mail ou senha incorretos.':/already registered/i.test(m)?'Este e-mail já tem conta.':/not confirmed/i.test(m)?'Confirme seu e-mail antes de entrar.':/rate limit/i.test(m)?'Muitas tentativas. Aguarde um pouco.':'Erro: '+m;
+async function loadProfile(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){acct=null;return}
+  const {data}=await sb.from('perfis').select('*').eq('id',session.user.id).maybeSingle();
+  acct=data||null;
+}
+async function acctInit(){
+  if(!window.supabase||!configured()){$('contaTxt').textContent='Visitante (Supabase não configurado)';return}
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  try{await loadProfile()}catch(e){}
+  acctUI();loadRank();if(!acct)showStart();
+}
+function acctUI(){
+  const b=$('contaBtn'),x=$('contaDel');b.hidden=false;x.hidden=!acct;delArm=false;x.textContent='Excluir';$('rk').hidden=!sb;
+  if(acct){$('contaTxt').textContent='👤 '+acct.apelido+' · '+acct.vitorias+'V '+acct.derrotas+'D';b.textContent='Sair'}
+  else{$('contaTxt').textContent='Visitante';b.textContent='Entrar / Criar'}
+}
+function showStart(){
+  $('inicio').hidden=false;
+  $('iTxt').textContent='Entre na sua conta ou crie uma nova para salvar suas vitórias no ranking.';
+  $('iEntrar').hidden=false;$('iCriar').hidden=false;
+}
+async function loadRank(){
+  if(!sb)return;
+  try{
+    const {data}=await sb.from('perfis').select('id,apelido,vitorias,derrotas').order('vitorias',{ascending:false}).limit(10);
+    const ol=$('rkl');ol.innerHTML='';
+    (data||[]).forEach(x=>{const li=document.createElement('li');li.textContent=x.apelido+' — '+x.vitorias+'V / '+x.derrotas+'D'+(acct&&x.id===acct.id?' (você)':'');ol.appendChild(li)});
+    if(!data||!data.length){const li=document.createElement('li');li.style.listStyle='none';li.textContent='Ninguém ainda. Crie sua conta!';ol.appendChild(li)}
+  }catch(e){}
+}
+async function record(w){
+  try{
+    const won=w===human,{error}=await sb.rpc('registrar_resultado',{venceu:won});
+    if(error)throw error;
+    await loadProfile();acctUI();loadRank();
+    log(won?'🏅 Vitória registrada na sua conta.':'Derrota registrada na sua conta.');
+  }catch(e){log('Não foi possível salvar o resultado.')}
+}
+function openDlg(mode){
+  dMode=mode;['email','pass','nick'].forEach(i=>$(i).value='');$('dErr').textContent='';
+  $('nick').style.display=mode==='create'?'':'none';
+  $('pass').autocomplete=mode==='create'?'new-password':'current-password';
+  $('dTit').textContent=mode==='create'?'Criar conta':'Entrar';
+  $('dTxt').textContent=mode==='create'?'Cada pessoa pode ter a sua conta. Escolha e-mail, apelido e senha.':'Digite o e-mail e a senha da sua conta.';
+  $('dOk').textContent=mode==='create'?'Criar':'Entrar';
+  $('dlg').showModal();
+}
+$('contaBtn').onclick=async()=>{
+  if(!sb){log('Configure o Supabase no código para usar contas.');return}
+  if(!acct)return showStart();
+  await sb.auth.signOut();acct=null;init();acctUI();log('Você saiu da conta.');showStart();
+};
+$('contaDel').onclick=async()=>{
+  if(!sb||!acct)return;
+  if(!delArm){delArm=true;$('contaDel').textContent='Confirmar?';setTimeout(()=>{if(delArm)acctUI()},4000);return}
+  try{const {error}=await sb.rpc('apagar_minha_conta');if(error)throw error;await sb.auth.signOut();acct=null;acctUI();loadRank();log('Conta excluída.');showStart()}
+  catch(e){log('Não foi possível excluir a conta.')}
+};
+$('iEntrar').onclick=()=>openDlg('login');
+$('iCriar').onclick=()=>openDlg('create');
+$('iVis').onclick=()=>{$('inicio').hidden=true};
+$('dNo').onclick=()=>$('dlg').close();
+$('dOk').onclick=async()=>{
+  if(!sb)return;
+  const email=$('email').value.trim(),pw=$('pass').value,err=m=>{$('dErr').textContent=m};
+  if(!email||pw.length<6)return err('Informe o e-mail e uma senha de pelo menos 6 caracteres.');
+  $('dOk').disabled=true;
+  try{
+    if(dMode==='create'){
+      const nm=$('nick').value.trim().slice(0,16);if(!nm)return err('Escolha um apelido.');
+      const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{apelido:nm}}});
+      if(error)return err(tr(error.message));
+      if(!data.session){$('dlg').close();log('Conta criada! Enviamos um e-mail de confirmação: confirme e depois entre.');return}
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error)return err(tr(error.message));
+    }
+    await loadProfile();
+    if(!acct)return err('Perfil não encontrado. Verifique o SQL do Supabase.');
+    $('dlg').close();$('inicio').hidden=true;acctUI();loadRank();log('👤 Conta ativa: '+acct.apelido+'.');
+  }catch(e){err('Não foi possível concluir. Tente novamente.')}
+  finally{$('dOk').disabled=false}
+};
+$('pass').onkeydown=e=>{if(e.key==='Enter')$('dOk').click()};
+$('hab').onclick=()=>useAb();
+$('hab2').onclick=()=>useAb(2);
+$('desf').onclick=undo;
+$('dica').onclick=dica;
+$('nivel').onchange=e=>{level=e.target.value;log('Dificuldade da IA: '+e.target.selectedOptions[0].text)};
+$('som').onclick=()=>{snd=!snd;$('som').textContent=snd?'🔊 Som':'🔇 Mudo'};
+$('novo').onclick=init;
+$('modo').onchange=e=>{vsAI=e.target.value==='ia';$('time').disabled=$('nivel').disabled=!vsAI;init()};
+$('time').onchange=e=>{human=e.target.value;init()};init();
+acctInit();
+</script>
+</body>
+</html>
