@@ -68,7 +68,7 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--blue);outline-
 #log .white{color:var(--blue)}#log .black{color:#a066ff}
 details{margin-top:10px;font-size:.82rem;color:var(--mut)}summary{cursor:pointer;color:var(--gold)}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
 </head>
 <body>
 <h1>Xadrez Vingadores: Ultimato</h1>
@@ -376,8 +376,8 @@ function init(){
   ui();render();
 }
 /* ===== Contas (Supabase) ===== */
-const SUPABASE_URL='COLE_AQUI_A_URL_DO_PROJETO';
-const SUPABASE_ANON_KEY='COLE_AQUI_A_CHAVE_ANON';
+const SUPABASE_URL='https://stdalwuhgjqnycpdziea.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_FyNdlYaYNOlOoONKWiKXbQ_XrDrowxy';
 let sb=null,acct=null,undoUsed=false,delArm=false,dMode='login';
 const configured=()=>!SUPABASE_URL.startsWith('COLE')&&!SUPABASE_ANON_KEY.startsWith('COLE');
 const tr=m=>/Invalid login/i.test(m)?'E-mail ou senha incorretos.':/already registered/i.test(m)?'Este e-mail já tem conta.':/not confirmed/i.test(m)?'Confirme seu e-mail antes de entrar.':/rate limit/i.test(m)?'Muitas tentativas. Aguarde um pouco.':'Erro: '+m;
