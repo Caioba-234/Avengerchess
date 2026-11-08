@@ -80,8 +80,10 @@ details{margin-top:10px;font-size:.82rem;color:var(--mut)}summary{cursor:pointer
     <h2>Painel de combate</h2>
     <div class="row" id="conta"><span id="contaTxt">Visitante</span><button class="btn2" id="contaBtn" hidden>Criar conta</button><button class="btn2" id="contaDel" hidden>Excluir</button></div>
     <dialog id="dlg"><h3 id="dTit" style="margin:0 0 4px">Entrar</h3><p style="font-size:.85rem;color:var(--mut);margin:0"><span id="dTxt"></span></p><input id="email" type="email" autocomplete="email" placeholder="E-mail" aria-label="E-mail"><input id="nick" maxlength="16" placeholder="Apelido (aparece no ranking)" aria-label="Apelido"><input id="pass" type="password" maxlength="72" placeholder="Senha (mín. 6 caracteres)" aria-label="Senha"><div id="dErr" style="color:var(--red);font-size:.82rem;min-height:1.1em"></div><div class="row" style="margin:0"><button class="btn" id="dOk">Entrar</button><button class="btn2" id="dNo">Cancelar</button></div></dialog>
+    <dialog id="dlgOn"><h3 style="margin:0 0 4px">Jogar online</h3><p style="font-size:.85rem;color:var(--mut);margin:0">Crie uma sala e passe o código para um amigo (você joga de Vingadores) ou digite o código que recebeu (você joga de Thanos).</p><button class="btn" id="onCriar" style="margin-top:8px">Criar sala</button><input id="codigo" maxlength="4" placeholder="Código da sala (4 letras)" aria-label="Código da sala" style="text-transform:uppercase"><div class="row" style="margin:0"><button class="btn" id="onEntrar">Entrar na sala</button><button class="btn2" id="onNo">Cancelar</button></div><div id="onErr" style="color:var(--red);font-size:.82rem;min-height:1.1em"></div></dialog>
+    <div class="row" id="sala" hidden style="background:var(--log);border:1px solid var(--bd);border-radius:6px;padding:6px 8px;font-size:.85rem"></div>
     <div class="row">
-      <select id="modo" aria-label="Modo de jogo"><option value="ia">Jogar contra a IA</option><option value="2p">Dois jogadores</option></select>
+      <select id="modo" aria-label="Modo de jogo"><option value="ia">Jogar contra a IA</option><option value="2p">Dois jogadores (mesmo aparelho)</option><option value="on">Jogar online (2 pessoas)</option></select>
       <button class="btn2" id="novo">Reiniciar</button>
     </div>
     <div class="row"><select id="time" aria-label="Seu time"><option value="white">Jogar de Vingadores (azul)</option><option value="black">Jogar de Thanos (roxo)</option></select></div>
@@ -118,8 +120,9 @@ const NW=['Dr. Estranho','Homem de Ferro','Thor','Capitã Marvel','Capitão Amé
 const ICON={'Dr. Estranho':'🔮','Homem de Ferro':'🤖','Thor':'⚡','Capitã Marvel':'⭐','Capitão América':'🛡️','Hulk':'💚','Máquina de Combate':'🪖','Homem-Formiga':'🐜','Wakandiano':'🐆','Thanos':'🧤','Leviatã':'🐙','Cull Obsidian':'🔨','Corvus Glaive':'🗡️','Próxima Meia-Noite':'🔱','Fauce de Ébano':'🌑','Outrider Alfa':'🐺','Navio Chitauri':'🚀','Outrider':'👾'};
 let board,turn,sel,acts,tgt,over,fx,last,vsAI=true,busy=false;
 let level='normal',hist=[],hintSq=null,snd=true,ac=null,human='white';
+let online=null,rx=false,outLog=[],lastFx=[];
 const ai=()=>human==='white'?'black':'white';
-const flip=()=>vsAI&&human==='black';
+const flip=()=>(vsAI||online)&&human==='black';
 function beep(f,d,t='square',v=.06){if(!snd)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t;o.frequency.value=f;g.gain.value=v;g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
 
 const inb=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
@@ -138,7 +141,7 @@ function setup(){
   }
   return b;
 }
-function log(m,cls){const d=document.createElement('div');d.textContent='› '+m;if(cls)d.className=cls;$('log').appendChild(d);$('log').scrollTop=1e9}
+function log(m,cls){if(online&&!rx)outLog.push([m,cls||'']);const d=document.createElement('div');d.textContent='› '+m;if(cls)d.className=cls;$('log').appendChild(d);$('log').scrollTop=1e9}
 
 function moves(r,c){
   const p=board[r][c],o=[];if(!p)return o;
@@ -217,6 +220,7 @@ function perform(x){
     last.push([x.tr,x.tc]);
   }else doAb(x.sr,x.sc,x.tgt,x.v);
   endTurn();
+  if(online)sendState();
 }
 function endTurn(){
   sel=null;acts=[];tgt=false;render();
@@ -231,13 +235,13 @@ function checkEnd(){
   if(n.white&&n.black)return false;
   over=true;[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.25,'triangle'),i*150));const t=$('turno');t.className=n.white?'white':'black';
   t.textContent=n.white?'🏆 Os Vingadores venceram!':'💀 O exército de Thanos venceu!';
-  log(n.white?'Todo o exército de Thanos foi destruído!':'Todos os Vingadores foram exterminados.');
-  if(vsAI&&acct&&sb){if(undoUsed)log('Partidas com Desfazer não entram no ranking.');else record(n.white?'white':'black')}
+  rx=true;log(n.white?'Todo o exército de Thanos foi destruído!':'Todos os Vingadores foram exterminados.');rx=false;
+  if((vsAI||online)&&acct&&sb){if(undoUsed)log('Partidas com Desfazer não entram no ranking.');else record(n.white?'white':'black')}
   ui();return true;
 }
 
 function click(r,c){
-  if(over||busy)return;
+  if(over||busy||(online&&(!online.ready||turn!==online.me)))return;
   const p=board[r][c];
   if(sel){
     const a=acts.find(x=>x.r===r&&x.c===c);
@@ -259,7 +263,7 @@ function useAb(v){
 }
 
 function ui(){
-  if(!over){const t=$('turno');t.className=turn;t.textContent='Turno: '+(turn==='white'?'Vingadores (brancas)':'Exército de Thanos (pretas)')+(busy?' pensando…':'')}
+  if(!over){const t=$('turno');t.className=turn;t.textContent='Turno: '+(turn==='white'?'Vingadores (brancas)':'Exército de Thanos (pretas)')+(busy?' pensando…':'')+(online?(online.ready?(turn===online.me?' · sua vez':' · vez do oponente'):' · aguardando oponente'):'')}
   const n={white:0,black:0};board.flat().forEach(p=>{if(p)n[p.c]++});
   $('cnt').innerHTML='<span>Vingadores: '+n.white+'</span><span>Thanos: '+n.black+'</span>';
   const h=$('hab'),i=$('info'),h2=$('hab2');h2.style.display='none';
@@ -298,7 +302,7 @@ function render(){
     s.addEventListener('click',()=>click(r,c));
     B.appendChild(s);
   }
-  fx=[];
+  lastFx=fx;fx=[];
 }
 
 /* IA do Thanos */
@@ -349,7 +353,7 @@ function aiTurn(){
   perform(pick.a);
 }
 function dica(){
-  if(over||busy||(vsAI&&turn!==human))return;
+  if(online||over||busy||(vsAI&&turn!==human))return;
   const c=plan(turn);if(!c.length)return;
   const a=c[0].a,p=board[a.sr][a.sc];
   sel={r:a.sr,c:a.sc};tgt=false;acts=moves(a.sr,a.sc);
@@ -358,7 +362,7 @@ function dica(){
   ui();render();
 }
 function undo(){
-  if(busy||!hist.length)return;
+  if(online||busy||!hist.length)return;
   const s=JSON.parse(hist[hist.length-1]);hist=hist.slice(0,-1);undoUsed=true;
   board=s.board;turn=s.turn;last=s.last;over=false;sel=null;acts=[];tgt=false;hintSq=null;
   log('↩️ Jogada desfeita.');ui();render();
@@ -432,7 +436,7 @@ function openDlg(mode){
 $('contaBtn').onclick=async()=>{
   if(!sb){log('Configure o Supabase no código para usar contas.');return}
   if(!acct)return showStart();
-  await sb.auth.signOut();acct=null;init();acctUI();log('Você saiu da conta.');showStart();
+  await sb.auth.signOut();acct=null;if(online){$('modo').value='ia';setMode('ia')}init();acctUI();log('Você saiu da conta.');showStart();
 };
 $('contaDel').onclick=async()=>{
   if(!sb||!acct)return;
@@ -466,14 +470,73 @@ $('dOk').onclick=async()=>{
   finally{$('dOk').disabled=false}
 };
 $('pass').onkeydown=e=>{if(e.key==='Enter')$('dOk').click()};
+/* ===== Online (Supabase Realtime) ===== */
+function setMode(v){
+  leaveRoom();vsAI=v==='ia';human=$('time').value;
+  $('time').disabled=$('nivel').disabled=v!=='ia';
+  if(v==='on'){
+    if(!sb){log('Configure o Supabase para jogar online.');$('modo').value='ia';return setMode('ia')}
+    $('codigo').value='';$('onErr').textContent='';$('dlgOn').showModal();return;
+  }
+  init();
+}
+function roomUI(){
+  const s=$('sala');if(!online){s.hidden=true;return}
+  s.hidden=false;
+  s.textContent='🌐 Sala '+online.code+' · você: '+(online.me==='white'?'Vingadores':'Thanos')+(online.ready?' · contra '+online.opp:' · aguardando oponente (passe o código)…');
+}
+function leaveRoom(){
+  if(online){try{sb.removeChannel(online.ch)}catch(e){}online=null}
+  roomUI();
+}
+function joinRoom(code,me){
+  leaveRoom();
+  const id=Math.random().toString(36).slice(2);
+  const ch=sb.channel('sala-'+code,{config:{broadcast:{self:false},presence:{key:id}}});
+  online={ch,code,me,id,ready:false,opp:''};human=me;vsAI=false;
+  ch.on('broadcast',{event:'estado'},({payload})=>applyState(payload));
+  ch.on('presence',{event:'sync'},()=>{
+    if(!online||online.ch!==ch)return;
+    const st=ch.presenceState(),o=Object.keys(st).filter(k=>k!==id);
+    if(o.length&&!online.ready){
+      online.ready=true;online.opp=(st[o[0]][0]||{}).nome||'Oponente';init();
+      log('⚔️ '+online.opp+' entrou! Você joga de '+(me==='white'?'Vingadores':'Thanos')+'.');
+    }else if(!o.length&&online.ready){online.ready=false;log('Seu oponente saiu da sala.')}
+    roomUI();ui();render();
+  });
+  ch.subscribe(async s=>{if(s==='SUBSCRIBED')await ch.track({nome:acct?acct.apelido:'Visitante'})});
+  init();
+  log(me==='white'?'Sala '+code+' criada. Passe o código ao seu amigo.':'Entrando na sala '+code+'…');
+  roomUI();
+}
+function sendState(){
+  if(!online)return;
+  online.ch.send({type:'broadcast',event:'estado',payload:{board,turn,last,fx:lastFx,logs:outLog}});
+  outLog=[];
+}
+function applyState(s){
+  board=s.board;turn=s.turn;last=s.last;fx=s.fx||[];sel=null;acts=[];tgt=false;hintSq=null;busy=false;over=false;
+  (s.logs||[]).forEach(([m,c])=>{rx=true;log(m,c);rx=false});
+  beep(330,.07);render();
+  if(!checkEnd())ui();
+}
+const genCode=()=>{const a='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:4},()=>a[Math.floor(Math.random()*a.length)]).join('')};
+$('onCriar').onclick=()=>{$('dlgOn').close();joinRoom(genCode(),'white')};
+$('onEntrar').onclick=()=>{
+  const c=$('codigo').value.trim().toUpperCase();
+  if(c.length!==4){$('onErr').textContent='O código tem 4 letras.';return}
+  $('dlgOn').close();joinRoom(c,'black');
+};
+$('onNo').onclick=()=>$('dlgOn').close();
+$('dlgOn').addEventListener('close',()=>{if(!online&&$('modo').value==='on'){$('modo').value='ia';setMode('ia')}});
 $('hab').onclick=()=>useAb();
 $('hab2').onclick=()=>useAb(2);
 $('desf').onclick=undo;
 $('dica').onclick=dica;
 $('nivel').onchange=e=>{level=e.target.value;log('Dificuldade da IA: '+e.target.selectedOptions[0].text)};
 $('som').onclick=()=>{snd=!snd;$('som').textContent=snd?'🔊 Som':'🔇 Mudo'};
-$('novo').onclick=init;
-$('modo').onchange=e=>{vsAI=e.target.value==='ia';$('time').disabled=$('nivel').disabled=!vsAI;init()};
+$('novo').onclick=()=>{if(online){log('Online: troque o modo para sair da sala.');return}init()};
+$('modo').onchange=e=>setMode(e.target.value);
 $('time').onchange=e=>{human=e.target.value;init()};init();
 acctInit();
 </script>
